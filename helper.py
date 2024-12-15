@@ -34,55 +34,45 @@ class Helper:
     def hash(self, value):
         return hashlib.sha256(value.encode()).hexdigest()
     
-    def parsesubtitle(self, fpath):
+    def saltgen(self, value):
+        ordsum = sum([ord(x) for x in value])
+        return ordsum
+        
+    def parsesubtitle(self, fpath, movie_id):
         with open(fpath) as f:
             res = [list(g) for b, g in groupby(f, lambda x: bool(x.strip())) if b]
 
         Subtitle = namedtuple('Subtitle', 'sub_id start end text')
 
         subs = []
-
-        # grouping
         for sub in res:
-            if len(sub) >= 3:  # not strictly necessary, but better safe than sorry
+            if len(sub) >= 3:
                 sub = [x.strip() for x in sub]
-                sub_id, start_end, *content = sub  # py3 syntax
+                sub_id, start_end, *content = sub
                 start, end = start_end.split(' --> ')
-
-                # ints only
-                sub_id = int(sub_id.lstrip('\ufeff'))
-
-                # join multi-line text
+                sub_id = int(sub_id.lstrip('\ufeff') + str(self.saltgen(movie_id)))
                 text = ', '.join(content)
-
-                subs.append(Subtitle(
-                    sub_id,
-                    start,
-                    end,
-                    text
-                ))
+                subs.append(Subtitle(sub_id, start, end, text))
 
         es_ready_subs = []
-
         for index, sub_object in enumerate(subs):
             prev_sub_text = ''
             next_sub_text = ''
-
             if index > 0:
                 prev_sub_text = subs[index - 1].text + ' '
-
             if index < len(subs) - 1:
                 next_sub_text = ' ' + subs[index + 1].text
-
             es_ready_subs.append(dict(
+                movie_id=movie_id,
                 **sub_object._asdict(),
                 overlapping_text=prev_sub_text + sub_object.text + next_sub_text
             ))
 
         return es_ready_subs
+
         
-    def elasticingest(self, filepath, indexname):
-        parsedsubtitle = self.parsesubtitle(filepath)
+    def elasticingest(self, filepath, indexname, movieid):
+        parsedsubtitle = self.parsesubtitle(filepath, movieid)
         actions = [
             {
                 "_index": indexname,
