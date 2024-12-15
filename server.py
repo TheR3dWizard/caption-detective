@@ -53,65 +53,72 @@ def search():
     ]
     }
     
-    indices = es.indices.get_alias(index="*")
-    index_list = [list(indices.keys())]
-    response = {
-        "hits": {
-            "hits": []
-        }
-    }
     try:
-        for indexkey in index_list: # very bad searching method #TODO: Change structure
-            returnresponse = es.search(index=indexkey, body=searchtemplate)
-            jsonresponse = jsonify(returnresponse.body)
-            
-            if jsonresponse != response:
-                return (jsonresponse, 200)
+        returnresponse = es.search(index='englishmovies', body=searchtemplate)
+        return jsonify(returnresponse.body), 200
             
     except ConnectionError as e:
         return jsonify({"error": "Elasticsearch connection error", "details": str(e)}), 500
 
-@app.route('/insertindex', methods=['POST'])
-def insertindex():
+@app.route('/setup', methods=['POST'])
+def setup():
     requestbody = request.json
     mapping = {
         "mappings": {
             "properties": {
-                "start": {
-                    "type": "text",
-                    "fields": {
-                        "as_timestamp": {
-                            "type": "date",
-                            "format": "HH:mm:ss,SSS"
-                        }
-                    }
-                },
-                "end": {
-                    "type": "text",
-                    "fields": {
-                        "as_timestamp": {
-                            "type": "date",
-                            "format": "HH:mm:ss,SSS"
-                        }
-                    }
+            "movie_id": {
+                "type": "keyword"
+            },
+            "sub_id": {
+                "type": "integer"
+            },
+            "start": {
+                "type": "text",
+                "fields": {
+                "as_timestamp": {
+                    "type": "date",
+                    "format": "HH:mm:ss,SSS"
                 }
+                }
+            },
+            "end": {
+                "type": "text",
+                "fields": {
+                "as_timestamp": {
+                    "type": "date",
+                    "format": "HH:mm:ss,SSS"
+                }
+                }
+            },
+            "text": {
+                "type": "text"
+            },
+            "overlapping_text": {
+                "type": "text"
+            }
             }
         }
-    }
+        }
     
     indexname = requestbody['indexname']
-    hashedindex = hclass.hash(indexname)
+    hashedindex = requestbody['indexname']
     
     hclass.addmovietojson(hashedindex, indexname)
     if not es.indices.exists(index=hashedindex):
         es.indices.create(index=hashedindex, body=mapping)
-        print(f"Index {hashedindex} ({indexname}) created with mapping.")
-        # return (f"Index {hashedindex} ({indexname}) created with mapping.", 200)
+        return (f"Index {hashedindex} ({indexname}) created with mapping.", 200)
     else:
         print(f"Index {hashedindex} ({indexname}) already exists.")
         return (f"Index {hashedindex} ({indexname}) already exists.", 409)
+
+@app.route('/insertindex', methods=['POST'])
+def insertindex():
     
-    returnvalue = hclass.elasticingest(requestbody['filepath'], hashedindex)
+    requestbody = request.json
+    hashedindex = requestbody['hashedindex']
+    movie_id = requestbody['movie_id']
+    
+    returnvalue = hclass.elasticingest(requestbody['filepath'], hashedindex, movie_id)
     
     statuscode = 200 if returnvalue == 'success' else 400
     
@@ -139,6 +146,24 @@ def add():
 def deleteindex():
     indexname = request.json['indexname']
     hashedindex = hclass.hash(indexname)
+    
+    try:
+        if es.indices.exists(index=hashedindex):
+            es.indices.delete(index=hashedindex)
+            print(f"Index {hashedindex} ({indexname}) deleted.")
+            return jsonify({"message": f"Index {hashedindex} ({indexname}) deleted."}), 200
+        else:
+            print(f"Index {hashedindex} ({indexname}) does not exist.")
+            return jsonify({"error": f"Index {hashedindex} ({indexname}) does not exist."}), 404
+    except ConnectionError as e:
+        return jsonify({"error": "Elasticsearch connection error", "details": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": "An error occurred", "details": str(e)}), 500
+
+@app.route('/deletehash', methods=['POST'])
+def deletehash():
+    indexname = request.json['indexname']
+    hashedindex = request.json['indexname']
     
     try:
         if es.indices.exists(index=hashedindex):
