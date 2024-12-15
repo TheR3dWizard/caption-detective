@@ -19,12 +19,55 @@ hclass = Helper()
 def home():
     return "Welcome to the Flask Elasticsearch app!"
 
-@app.route('/search', methods=['GET'])
+@app.route('/search', methods=['POST'])
 def search():
-    query = request.args.get('q')
+    requestbody = request.json
+    searchtemplate = {
+    "query": {
+        "bool": {
+        "should": [
+            {
+            "match_phrase": {
+                "text": {
+                "query": requestbody['query'],
+                "boost": 2
+                }
+            }
+            },
+            {
+            "match_phrase": {
+                "overlapping_text": {
+                "query": requestbody['query']
+                }
+            }
+            }
+        ]
+        }
+    },
+    "sort": [
+        {
+        "start.as_timestamp": {
+            "order": "asc"
+        }
+        }
+    ]
+    }
+    
+    indices = es.indices.get_alias(index="*")
+    index_list = list(indices.keys())
+    response = {
+  "hits": {
+    "hits": []
+  }
+}
     try:
-        response = es.search(index="your_index", body={"query": {"match": {"field": query}}})
-        return jsonify(response.body)
+        for indexkey in index_list:
+            returnresponse = es.search(index=indexkey, body=searchtemplate)
+            jsonresponse = jsonify(returnresponse.body)
+            
+            if jsonresponse != response:
+                return (jsonresponse, 2000)
+            
     except ConnectionError as e:
         return jsonify({"error": "Elasticsearch connection error", "details": str(e)}), 500
 
