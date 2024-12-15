@@ -54,19 +54,19 @@ def search():
     }
     
     indices = es.indices.get_alias(index="*")
-    index_list = list(indices.keys())
+    index_list = [list(indices.keys())]
     response = {
-  "hits": {
-    "hits": []
-  }
-}
+        "hits": {
+            "hits": []
+        }
+    }
     try:
-        for indexkey in index_list:
+        for indexkey in index_list: # very bad searching method #TODO: Change structure
             returnresponse = es.search(index=indexkey, body=searchtemplate)
             jsonresponse = jsonify(returnresponse.body)
             
             if jsonresponse != response:
-                return (jsonresponse, 2000)
+                return (jsonresponse, 200)
             
     except ConnectionError as e:
         return jsonify({"error": "Elasticsearch connection error", "details": str(e)}), 500
