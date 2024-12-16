@@ -9,6 +9,7 @@ from subtitleparser import parse_subs
 
 from dotenv import load_dotenv
 import os
+import requests
 load_dotenv()
 
 class Helper:
@@ -19,6 +20,8 @@ class Helper:
             basic_auth=('elastic', self.elasticpassword),
             ca_certs='http_ca.crt'
         )
+        self.omdbapibaseURL = f"https://www.omdbapi.com/?apikey={os.getenv('OMDB_API_KEY')}"
+        self.omdbimagebaseURL = f"https://img.omdbapi.com/?apikey={os.getenv('OMDB_API_KEY')}"
     def addmovietojson(self, key, value):
         file_path = "hashreference.json"
         try:
@@ -86,3 +89,31 @@ class Helper:
             return 'success'
         except Exception as e:
             return str(e)
+    
+    def getmoviedetailsfromIMDBID(self, imdbid):
+        url = f"{self.omdbapibaseURL}&i={imdbid}"
+        response = requests.get(url)
+        
+        return response.json(), response.status_code
+        
+    def getmoviedetailsfromtitle(self, title):
+        url = f"{self.omdbapibaseURL}&t={title}"
+        response = requests.get(url)
+        
+        return response.json(), response.status_code
+
+    def getimdbidfromtitle(self, title):
+        url = f"{self.omdbapibaseURL}&t={title}"
+        response = requests.get(url)
+        response = response.json()
+        
+        return response['imdbID']
+
+    def getposterfromimdbid(self, imdbid):
+        url = f"{self.omdbimagebaseURL}&i={imdbid}"
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            return response.content, response.status_code  # Return binary content for the image
+        else:
+            return None, response.status_code  # Handle error cases
