@@ -55,7 +55,22 @@ def search():
     
     try:
         returnresponse = es.search(index='englishmovies', body=searchtemplate)
-        return jsonify(returnresponse.body), 200
+        setofallmovieids = set()
+        for hit in returnresponse['hits']['hits']:
+            setofallmovieids.add(hit['_source']['movie_id'])
+        
+        moviedetails = list()
+        for movieid in setofallmovieids:
+            omdbresponse, statuscode = hclass.getmoviedetailsfromIMDBID(movieid)
+            if statuscode == 200:
+                moviedetails.append(omdbresponse)
+        
+        if len(moviedetails) == 0:
+            return jsonify({"error": "No movie details found."}), 404
+        elif len(moviedetails) == 1:
+            return jsonify(moviedetails[0]), 200
+        else:
+            return jsonify(moviedetails), 200    
             
     except ConnectionError as e:
         return jsonify({"error": "Elasticsearch connection error", "details": str(e)}), 500
@@ -116,13 +131,18 @@ def insertindex():
     
     requestbody = request.json
     hashedindex = requestbody['hashedindex']
-    movie_id = requestbody['movie_id']
-    
-    returnvalue = hclass.elasticingest(requestbody['filepath'], hashedindex, movie_id)
-    
-    statuscode = 200 if returnvalue == 'success' else 400
-    
-    return (returnvalue, statuscode)
+    if 'movie_name' not in requestbody:
+        return jsonify({"error": "Movie name not provided."}), 400
+    else:
+        omdbresponse, statuscode = hclass.getmoviedetailsfromtitle(requestbody['movie_name'])
+        if statuscode == 200:
+            movie_id = omdbresponse['imdbID']
+            print(f"Assuming {requestbody['movie_name']} is {omdbresponse['Title']} ({omdbresponse['Year']}) with IMDB ID {movie_id}.")
+            returnvalue = hclass.elasticingest(requestbody['filepath'], hashedindex, movie_id)
+            statuscode = 200 if returnvalue == 'success' else 400
+            return (returnvalue, statuscode)
+        else:
+            return jsonify({"error": "Movie not found in OMDB database."}), 404
     
     
 
