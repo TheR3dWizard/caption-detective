@@ -16,25 +16,12 @@
     </form>
     <div id="results"></div>
 
-    <!-- Video -->
-    <h2>How to Use this platform</h2>
-    <iframe width="560" height="315" src="https://www.youtube.com/watch?v=7HVxmstM0qA" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
-    <!-- Image -->
-    <h2>Movie Poster</h2>
-    <img src="https://m.media-amazon.com/images/M/MV5BOTJlNzY5OTAtNjIxNi00MTUxLWJkZjEtZDcxYTg2YWY0MjZkXkEyXkFqcGc@._V1_SX300.jpg" alt="Monkey Man Poster">
-
-    <!-- Hyperlink -->
-    <h2>More Information</h2>
-    <a href="https://www.imdb.com/title/tt1234567/" target="_blank">Visit IMDB Page</a>
-
-
     <script>
         document.getElementById('searchForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const query = document.getElementById('query').value;
             console.log(query);
-            const response = await fetch('http://localhost:6754', {
+            const response = await fetch('http://localhost:6754/search', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -43,12 +30,39 @@
             });
             const data = await response.json();
             const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = 'Results:';
-            data.forEach(result => {
-                const p = document.createElement('p');
-                p.textContent = result;
-                resultsDiv.appendChild(p);
-            });
+            resultsDiv.innerHTML = '<h2>Results:</h2>';
+            console.log(data);
+
+            if (data.Response === "True") {
+                const movieDetails = `
+                    <h3>${data.Title} (${data.Year})</h3>
+                    <p><strong>Director:</strong> ${data.Director}</p>
+                    <p><strong>Actors:</strong> ${data.Actors}</p>
+                    <p><strong>Genre:</strong> ${data.Genre}</p>
+                    <p><strong>Plot:</strong> ${data.Plot}</p>
+                    <p><strong>Language:</strong> ${data.Language}</p>
+                    <p><strong>Country:</strong> ${data.Country}</p>
+                    <p><strong>Released:</strong> ${data.Released}</p>
+                    <p><strong>Runtime:</strong> ${data.Runtime}</p>
+                    <p><strong>Rated:</strong> ${data.Rated}</p>
+                    <p><strong>Box Office:</strong> ${data.BoxOffice}</p>
+                    <p><strong>Awards:</strong> ${data.Awards}</p>
+                    <p><strong>Metascore:</strong> ${data.Metascore}</p>
+                    <p><strong>IMDB Rating:</strong> ${data.imdbRating}</p>
+                    <p><strong>IMDB Votes:</strong> ${data.imdbVotes}</p>
+                    <h3>Ratings:</h3>
+                    <ul>
+                        ${data.Ratings.map(rating => `<li>${rating.Source}: ${rating.Value}</li>`).join('')}
+                    </ul>
+                    <h3>Poster:</h3>
+                    <img src="${data.Poster}" alt="${data.Title} Poster">
+                    <h3>More Information:</h3>
+                    <a href="https://www.imdb.com/title/${data.imdbID}/" target="_blank">Visit IMDB Page</a>
+                `;
+                resultsDiv.innerHTML += movieDetails;
+            } else {
+                resultsDiv.innerHTML += '<p>No results found or an error occurred.</p>';
+            }
         });
     </script>
 </body>

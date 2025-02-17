@@ -1,5 +1,6 @@
 from helper import Helper
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from elasticsearch import Elasticsearch, ConnectionError, NotFoundError
 from dotenv import load_dotenv
 import os
@@ -7,6 +8,7 @@ load_dotenv()
 
 
 app = Flask(__name__)
+CORS(app)
 espassword = os.getenv("ES_PASSWORD")
 es = Elasticsearch(
     [{'host': 'localhost', 'port': 9200, 'scheme': 'https'}],
