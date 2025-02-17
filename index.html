@@ -87,6 +87,13 @@
         a:hover {
             text-decoration: underline;
         }
+        .dialogue {
+            font-size: x-large;
+            font-style: italic;
+            font-family: 'Georgia', serif;
+            margin-bottom: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -119,6 +126,7 @@
 
             if (data.Response === "True") {
                 const movieDetails = `
+                    <p class="dialogue">"${data.dialogue}"</p>
                     <h3>${data.Title} (${data.Year})</h3>
                     <p><strong>Director:</strong> ${data.Director}</p>
                     <p><strong>Actors:</strong> ${data.Actors}</p>

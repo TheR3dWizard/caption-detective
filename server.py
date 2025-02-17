@@ -57,6 +57,11 @@ def search():
     
     try:
         returnresponse = es.search(index='englishmovies', body=searchtemplate)
+        print(f"Got {returnresponse['hits']['total']['value']} hits.")
+        print(returnresponse)
+        dialogues = returnresponse['hits']['hits']
+        if len(dialogues) == 0:
+            return jsonify({"error": "No dialogues found."}), 404
         setofallmovieids = set()
         for hit in returnresponse['hits']['hits']:
             setofallmovieids.add(hit['_source']['movie_id'])
@@ -70,9 +75,14 @@ def search():
         if len(moviedetails) == 0:
             return jsonify({"error": "No movie details found."}), 404
         elif len(moviedetails) == 1:
-            return jsonify(moviedetails[0]), 200
+            returnjson = moviedetails[0]
+            returnjson['dialogue'] = dialogues[0]["_source"]["overlapping_text"]
+            
+            return jsonify(returnjson), 200
         else:
-            return jsonify(moviedetails), 200    
+            returnjson = moviedetails
+            returnjson['dialogue'] = dialogues[0]["_source"]["overlapping_text"]
+            return jsonify(returnjson), 200    
             
     except ConnectionError as e:
         return jsonify({"error": "Elasticsearch connection error", "details": str(e)}), 500
