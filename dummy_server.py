@@ -65,4 +65,4 @@ def insertindex():
     return "succcess"
 
 if __name__ == '__main__':
-    app.run(debug=False, port=PORT)
+    app.run(host = "0.0.0.0",debug=False, port=PORT)
