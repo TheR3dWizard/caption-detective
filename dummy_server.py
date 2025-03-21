@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from dotenv import load_dotenv
+import os
 
 app = Flask(__name__)
 CORS(app)
-
+PORT = os.getenv('PORT')
 @app.route('/')
 def home():
     return "Welcome to the Flask Elasticsearch app!"
@@ -63,4 +65,4 @@ def insertindex():
     return "succcess"
 
 if __name__ == '__main__':
-    app.run(debug=False, port=6754)
+    app.run(debug=False, port=PORT)
